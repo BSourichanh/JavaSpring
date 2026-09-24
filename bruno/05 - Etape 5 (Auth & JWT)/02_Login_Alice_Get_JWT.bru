@@ -1,0 +1,39 @@
+meta {
+  name: 2. Connexion Alice et Obtention JWT (:8081)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{userServiceUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "Alice_jwt",
+    "password": "password123"
+  }
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("JJWT token extrait et sauvegardé", function() {
+    const data = res.getBody();
+    expect(data.token).to.be.a('string');
+    expect(data.token.length).to.be.above(20);
+    
+    bru.setVar("jwtToken", data.token);
+    if (typeof bru.setEnvVar === 'function') {
+      bru.setEnvVar("jwtToken", data.token);
+    }
+  });
+}

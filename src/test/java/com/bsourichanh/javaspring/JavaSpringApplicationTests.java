@@ -1,13 +1,20 @@
 package com.bsourichanh.javaspring;
 
+import com.bsourichanh.javaspring.security.JwtService;
+import com.bsourichanh.javaspring.service.UserValidationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import org.springframework.test.context.ActiveProfiles;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,6 +27,19 @@ class JavaSpringApplicationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private JwtService jwtService;
+
+    // Mock du service d'appel HTTP : isValidUser() retourne toujours true en test
+    @MockitoBean
+    private UserValidationService userValidationService;
+
+    private static final String TEST_USER_ID = "00000000-0000-0000-0000-000000000001";
+
+    private void setupValidUser() {
+        when(userValidationService.isValidUser(anyString())).thenReturn(true);
+    }
 
     @Test
     void contextLoads() {
@@ -65,6 +85,7 @@ class JavaSpringApplicationTests {
 
     @Test
     void testCreateGameWithDefaultParameters() throws Exception {
+        setupValidUser();
         String json = """
                 {
                     "gameType": "tictactoe"
@@ -73,6 +94,7 @@ class JavaSpringApplicationTests {
 
         mockMvc.perform(post("/games")
                         .contentType("application/json")
+                        .header("X-UserId", TEST_USER_ID)
                         .content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").exists())
@@ -82,6 +104,7 @@ class JavaSpringApplicationTests {
 
     @Test
     void testCreateGameEndpoint() throws Exception {
+        setupValidUser();
         String json = """
                 {
                     "gameType": "tictactoe",
@@ -92,6 +115,7 @@ class JavaSpringApplicationTests {
 
         mockMvc.perform(post("/games")
                         .contentType("application/json")
+                        .header("X-UserId", TEST_USER_ID)
                         .content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").exists())
@@ -101,6 +125,7 @@ class JavaSpringApplicationTests {
 
     @Test
     void testCreateGameWithAlternativeFieldNames() throws Exception {
+        setupValidUser();
         String json = """
                 {
                     "type": "tictactoe",
@@ -111,6 +136,7 @@ class JavaSpringApplicationTests {
 
         mockMvc.perform(post("/games")
                         .contentType("application/json")
+                        .header("X-UserId", TEST_USER_ID)
                         .content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").exists())
@@ -119,7 +145,22 @@ class JavaSpringApplicationTests {
     }
 
     @Test
+    void testCreateGameWithoutUserIdReturns401() throws Exception {
+        when(userValidationService.isValidUser(null)).thenReturn(false);
+        when(userValidationService.isValidUser("")).thenReturn(false);
+        String json = """
+                { "gameType": "tictactoe" }
+                """;
+
+        mockMvc.perform(post("/games")
+                        .contentType("application/json")
+                        .content(json))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void testGetGameByIdSuccess() throws Exception {
+        setupValidUser();
         String json = """
                 {
                     "gameType": "tictactoe",
@@ -130,16 +171,17 @@ class JavaSpringApplicationTests {
 
         String response = mockMvc.perform(post("/games")
                         .contentType("application/json")
+                        .header("X-UserId", TEST_USER_ID)
                         .content(json))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
-        // Extraire l'ID du jeu
         String gameId = com.jayway.jsonpath.JsonPath.read(response, "$.id");
 
-        mockMvc.perform(get("/games/" + gameId))
+        mockMvc.perform(get("/games/" + gameId)
+                        .header("X-UserId", TEST_USER_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(gameId))
                 .andExpect(jsonPath("$.factoryId").value("tictactoe"))
@@ -148,13 +190,16 @@ class JavaSpringApplicationTests {
 
     @Test
     void testGetGameByIdNotFound() throws Exception {
+        setupValidUser();
         String randomId = java.util.UUID.randomUUID().toString();
-        mockMvc.perform(get("/games/" + randomId))
+        mockMvc.perform(get("/games/" + randomId)
+                        .header("X-UserId", TEST_USER_ID))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void testCreateTaquinGame() throws Exception {
+        setupValidUser();
         String json = """
                 {
                     "gameType": "taquin",
@@ -165,6 +210,7 @@ class JavaSpringApplicationTests {
 
         mockMvc.perform(post("/games")
                         .contentType("application/json")
+                        .header("X-UserId", TEST_USER_ID)
                         .content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").exists())
@@ -174,6 +220,7 @@ class JavaSpringApplicationTests {
 
     @Test
     void testCreateConnectFourGame() throws Exception {
+        setupValidUser();
         String json = """
                 {
                     "gameType": "connect4",
@@ -184,11 +231,133 @@ class JavaSpringApplicationTests {
 
         mockMvc.perform(post("/games")
                         .contentType("application/json")
+                        .header("X-UserId", TEST_USER_ID)
                         .content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.factoryId").value("connect4"))
                 .andExpect(jsonPath("$.boardSize").value(7));
+    }
+
+    @Test
+    void testGetGamesFilteredForUser() throws Exception {
+        setupValidUser();
+        // Créer une partie pour TEST_USER_ID
+        String json = """
+                { "gameType": "tictactoe" }
+                """;
+        mockMvc.perform(post("/games")
+                        .contentType("application/json")
+                        .header("X-UserId", TEST_USER_ID)
+                        .content(json))
+                .andExpect(status().isOk());
+
+        // Vérifier que GET /games avec TEST_USER_ID retourne au moins 1 partie
+        mockMvc.perform(get("/games")
+                        .header("X-UserId", TEST_USER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThan(0)));
+
+        // Vérifier que GET /games avec un autre utilisateur inconnu/sans partie retourne une liste vide
+        String otherUserId = java.util.UUID.randomUUID().toString();
+        mockMvc.perform(get("/games")
+                        .header("X-UserId", otherUserId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void testPlayMoveForbiddenWhenNotCurrentPlayer() throws Exception {
+        setupValidUser();
+        String json = """
+                { "gameType": "tictactoe" }
+                """;
+        String response = mockMvc.perform(post("/games")
+                        .contentType("application/json")
+                        .header("X-UserId", TEST_USER_ID)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String gameId = com.jayway.jsonpath.JsonPath.read(response, "$.id");
+
+        // Tenter de jouer un coup avec un autre ID que currentPlayerId -> 403 Forbidden
+        String wrongPlayerId = java.util.UUID.randomUUID().toString();
+        mockMvc.perform(post("/games/" + gameId + "/moves")
+                        .contentType("application/json")
+                        .header("X-UserId", wrongPlayerId)
+                        .content("{\"x\": 0, \"y\": 0}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testCreateGameWithBearerJwt() throws Exception {
+        String token = jwtService.generateToken(TEST_USER_ID, "alice", "ROLE_USER", 3600000);
+        String json = """
+                { "gameType": "tictactoe" }
+                """;
+
+        mockMvc.perform(post("/games")
+                        .contentType("application/json")
+                        .header("Authorization", "Bearer " + token)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.factoryId").value("tictactoe"));
+
+        // Vérifier que UserValidationService n'a JAMAIS été appelé (validation 100% locale sans réseau)
+        verify(userValidationService, never()).isValidUser(anyString());
+    }
+
+    @Test
+    void testCreateGameWithInvalidBearerJwtReturns401() throws Exception {
+        String json = """
+                { "gameType": "tictactoe" }
+                """;
+
+        mockMvc.perform(post("/games")
+                        .contentType("application/json")
+                        .header("Authorization", "Bearer invalid.token.signature")
+                        .content(json))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void testCreateGameWithoutAuthReturns401() throws Exception {
+        String json = """
+                { "gameType": "tictactoe" }
+                """;
+
+        mockMvc.perform(post("/games")
+                        .contentType("application/json")
+                        .content(json))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void testPlayMoveWithBearerJwt() throws Exception {
+        String token = jwtService.generateToken(TEST_USER_ID, "alice", "ROLE_USER", 3600000);
+        String json = """
+                { "gameType": "tictactoe" }
+                """;
+
+        String createResponse = mockMvc.perform(post("/games")
+                        .contentType("application/json")
+                        .header("Authorization", "Bearer " + token)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String gameId = com.jayway.jsonpath.JsonPath.read(createResponse, "$.id");
+
+        mockMvc.perform(post("/games/" + gameId + "/moves")
+                        .contentType("application/json")
+                        .header("Authorization", "Bearer " + token)
+                        .content("{\"x\": 0, \"y\": 0}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(gameId));
     }
 }
 

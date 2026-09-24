@@ -1,0 +1,34 @@
+meta {
+  name: 13. Alice rejoue hors de son tour (Attendu 403)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{gameServiceUrl}}/games/{{gameId}}/moves
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-UserId: {{aliceId}}
+}
+
+body:json {
+  {
+    "x": 0,
+    "y": 1
+  }
+}
+
+tests {
+  test("Code HTTP 403 Forbidden", function() {
+    expect(res.getStatus()).to.equal(403);
+  });
+  
+  test("Message d'erreur tour de jeu", function() {
+    const data = res.getBody();
+    expect(data.error).to.include("Ce n'est pas votre tour de jouer");
+  });
+}

@@ -1,0 +1,27 @@
+meta {
+  name: 10. Consulter Partie par ID (:8080)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{gameServiceUrl}}/games/{{gameId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-UserId: {{aliceId}}
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("La partie correspond à l'ID recherché", function() {
+    const data = res.getBody();
+    expect(data.id).to.equal(bru.getVar("gameId"));
+    expect(data.factoryId).to.equal("tictactoe");
+  });
+}

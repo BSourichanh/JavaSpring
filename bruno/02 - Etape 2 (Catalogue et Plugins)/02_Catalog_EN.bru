@@ -1,0 +1,29 @@
+meta {
+  name: 3. Catalogue de jeux en Anglais
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{gameServiceUrl}}/api/catalog/games
+  body: none
+  auth: none
+}
+
+headers {
+  Accept-Language: en
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Retourne les noms en Anglais", function() {
+    const list = res.getBody();
+    expect(list).to.be.an('array');
+    expect(list).to.include("Tic-Tac-Toe");
+    expect(list).to.include("15-Puzzle");
+    expect(list).to.include("Connect Four");
+  });
+}

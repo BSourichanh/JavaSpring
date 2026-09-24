@@ -1,0 +1,39 @@
+meta {
+  name: 9. Créer Partie AVEC Alice Valide (Attendu 200)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{gameServiceUrl}}/games
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-UserId: {{aliceId}}
+}
+
+body:json {
+  {
+    "gameType": "tictactoe"
+  }
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("La partie a un ID et un statut ONGOING", function() {
+    const data = res.getBody();
+    expect(data.id).to.be.a('string');
+    expect(data.status).to.equal("ONGOING");
+    
+    bru.setVar("gameId", data.id);
+    if (typeof bru.setEnvVar === 'function') {
+      bru.setEnvVar("gameId", data.id);
+    }
+  });
+}

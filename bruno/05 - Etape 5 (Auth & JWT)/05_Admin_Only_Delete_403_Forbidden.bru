@@ -1,0 +1,21 @@
+meta {
+  name: 5. Test RBAC - Suppression Admin (Attendu 403) (:8081)
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{userServiceUrl}}/users/{{aliceId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwtToken}}
+}
+
+tests {
+  test("Code HTTP 403 Forbidden pour un ROLE_USER", function() {
+    expect(res.getStatus()).to.equal(403);
+  });
+}

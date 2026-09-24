@@ -9,4 +9,8 @@ public interface GamePlugin {
     int getDefaultPlayerCount();
     int getDefaultBoardSize();
     Game createGame(Integer playerCount, Integer boardSize);
+
+    default Game createGame(Integer playerCount, Integer boardSize, java.util.Collection<java.util.UUID> playerIds) {
+        return createGame(playerCount, boardSize);
+    }
 }

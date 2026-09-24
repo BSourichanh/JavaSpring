@@ -1,0 +1,32 @@
+meta {
+  name: 7. Créer Partie SANS X-UserId (Attendu 401)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{gameServiceUrl}}/games
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "gameType": "tictactoe"
+  }
+}
+
+tests {
+  test("Code HTTP 401 Unauthorized", function() {
+    expect(res.getStatus()).to.equal(401);
+  });
+  
+  test("Message d'erreur explicite", function() {
+    const data = res.getBody();
+    expect(data.error).to.include("X-UserId manquant ou utilisateur inconnu");
+  });
+}

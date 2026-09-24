@@ -1,0 +1,27 @@
+meta {
+  name: 11. Liste des Parties du Joueur Alice (:8080)
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{gameServiceUrl}}/games
+  body: none
+  auth: none
+}
+
+headers {
+  X-UserId: {{aliceId}}
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("La liste est un tableau non vide", function() {
+    const list = res.getBody();
+    expect(list).to.be.an('array');
+    expect(list.length).to.be.greaterThan(0);
+  });
+}

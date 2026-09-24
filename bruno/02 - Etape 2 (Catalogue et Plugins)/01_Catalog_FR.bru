@@ -1,0 +1,29 @@
+meta {
+  name: 2. Catalogue de jeux en Français
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{gameServiceUrl}}/api/catalog/games
+  body: none
+  auth: none
+}
+
+headers {
+  Accept-Language: fr
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Retourne les noms en Français", function() {
+    const list = res.getBody();
+    expect(list).to.be.an('array');
+    expect(list).to.include("Morpion");
+    expect(list).to.include("Taquin");
+    expect(list).to.include("Puissance 4");
+  });
+}

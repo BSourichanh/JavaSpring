@@ -1,0 +1,33 @@
+meta {
+  name: 8. Créer Partie AVEC faux X-UserId (Attendu 401)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{gameServiceUrl}}/games
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-UserId: fake-unknown-user-id
+}
+
+body:json {
+  {
+    "gameType": "tictactoe"
+  }
+}
+
+tests {
+  test("Code HTTP 401 Unauthorized", function() {
+    expect(res.getStatus()).to.equal(401);
+  });
+  
+  test("Message d'erreur explicite", function() {
+    const data = res.getBody();
+    expect(data.error).to.include("X-UserId manquant ou utilisateur inconnu");
+  });
+}

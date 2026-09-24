@@ -1,0 +1,40 @@
+meta {
+  name: 4. Créer Utilisateur Alice (:8081)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{userServiceUrl}}/users
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "Alice",
+    "email": "alice@example.com"
+  }
+}
+
+tests {
+  test("Code HTTP 200 ou 201", function() {
+    expect([200, 201]).to.include(res.getStatus());
+  });
+  
+  test("ID stocké dans la variable aliceId", function() {
+    const data = res.getBody();
+    expect(data.id).to.be.a('string');
+    expect(data.username).to.equal("Alice");
+    
+    // Stockage pour le runner et l'environnement actif
+    bru.setVar("aliceId", data.id);
+    if (typeof bru.setEnvVar === 'function') {
+      bru.setEnvVar("aliceId", data.id);
+    }
+  });
+}

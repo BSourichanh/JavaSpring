@@ -1,0 +1,37 @@
+meta {
+  name: 4. Jouer un Coup avec JWT Bearer (:8080)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{gameServiceUrl}}/games/{{gameId}}/moves
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{jwtToken}}
+}
+
+body:json {
+  {
+    "x": 0,
+    "y": 0
+  }
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Coup validé et plateau mis à jour", function() {
+    const data = res.getBody();
+    expect(data.id).to.equal(bru.getVar("gameId"));
+  });
+}

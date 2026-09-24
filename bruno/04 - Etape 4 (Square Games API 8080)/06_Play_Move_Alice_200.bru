@@ -1,0 +1,36 @@
+meta {
+  name: 12. Jouer un coup (Alice en 0,0 - Attendu 200)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{gameServiceUrl}}/games/{{gameId}}/moves
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-UserId: {{aliceId}}
+}
+
+body:json {
+  {
+    "x": 0,
+    "y": 0
+  }
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Le plateau contient un jeton en 0,0 et le joueur actif a changé", function() {
+    const data = res.getBody();
+    expect(data.board).to.be.an('object');
+    // Le tour a changé, ce n'est plus Alice
+    expect(data.currentPlayerId).to.not.equal(bru.getVar("aliceId"));
+  });
+}

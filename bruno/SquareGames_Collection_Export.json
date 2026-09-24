@@ -1,0 +1,327 @@
+{
+  "info": {
+    "name": "Square Games & Users API",
+    "description": "Collection de tests automatisés Bruno / Postman pour Square Games API (Itérations 1 à 4)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "gameServiceUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "userServiceUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "aliceId",
+      "value": "c3472f6b-a342-4aad-b65f-2545531ebef2",
+      "type": "string"
+    },
+    {
+      "key": "gameId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Étape 1 (Heartbeat)",
+      "item": [
+        {
+          "name": "1. Heartbeat (:8080)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gameServiceUrl}}/heartbeat",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["heartbeat"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Étape 2 (Catalogue et Plugins)",
+      "item": [
+        {
+          "name": "2. Catalogue de jeux en Français",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "fr"
+              }
+            ],
+            "url": {
+              "raw": "{{gameServiceUrl}}/api/catalog/games",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["api", "catalog", "games"]
+            }
+          }
+        },
+        {
+          "name": "3. Catalogue de jeux en Anglais",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "en"
+              }
+            ],
+            "url": {
+              "raw": "{{gameServiceUrl}}/api/catalog/games",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["api", "catalog", "games"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Étape 4 (Microservice Users 8081)",
+      "item": [
+        {
+          "name": "4. Créer Utilisateur Alice (:8081)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200 ou 201\", function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set(\"aliceId\", data.id);",
+                  "pm.environment.set(\"aliceId\", data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Alice\",\n  \"email\": \"alice@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{userServiceUrl}}/users",
+              "host": ["{{userServiceUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "5. Vérifier Alice Valide (:8081)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{userServiceUrl}}/users/{{aliceId}}/valid",
+              "host": ["{{userServiceUrl}}"],
+              "path": ["users", "{{aliceId}}", "valid"]
+            }
+          }
+        },
+        {
+          "name": "6. Vérifier Utilisateur Invalide (:8081)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{userServiceUrl}}/users/00000000-0000-0000-0000-000000000000/valid",
+              "host": ["{{userServiceUrl}}"],
+              "path": ["users", "00000000-0000-0000-0000-000000000000", "valid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Étape 4 (Square Games API 8080)",
+      "item": [
+        {
+          "name": "7. Créer Partie SANS X-UserId (Attendu 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameType\": \"tictactoe\"\n}"
+            },
+            "url": {
+              "raw": "{{gameServiceUrl}}/games",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["games"]
+            }
+          }
+        },
+        {
+          "name": "8. Créer Partie AVEC faux X-UserId (Attendu 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-UserId",
+                "value": "fake-user-id"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameType\": \"tictactoe\"\n}"
+            },
+            "url": {
+              "raw": "{{gameServiceUrl}}/games",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["games"]
+            }
+          }
+        },
+        {
+          "name": "9. Créer Partie AVEC Alice Valide (Attendu 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set(\"gameId\", data.id);",
+                  "pm.environment.set(\"gameId\", data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-UserId",
+                "value": "{{aliceId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameType\": \"tictactoe\"\n}"
+            },
+            "url": {
+              "raw": "{{gameServiceUrl}}/games",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["games"]
+            }
+          }
+        },
+        {
+          "name": "10. Consulter Partie par ID (:8080)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-UserId",
+                "value": "{{aliceId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gameServiceUrl}}/games/{{gameId}}",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["games", "{{gameId}}"]
+            }
+          }
+        },
+        {
+          "name": "11. Liste des Parties du Joueur Alice (:8080)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-UserId",
+                "value": "{{aliceId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gameServiceUrl}}/games",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["games"]
+            }
+          }
+        },
+        {
+          "name": "12. Jouer un coup (Alice en 0,0 - Attendu 200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-UserId",
+                "value": "{{aliceId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"x\": 0,\n  \"y\": 0\n}"
+            },
+            "url": {
+              "raw": "{{gameServiceUrl}}/games/{{gameId}}/moves",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["games", "{{gameId}}", "moves"]
+            }
+          }
+        },
+        {
+          "name": "13. Alice rejoue hors de son tour (Attendu 403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-UserId",
+                "value": "{{aliceId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"x\": 0,\n  \"y\": 1\n}"
+            },
+            "url": {
+              "raw": "{{gameServiceUrl}}/games/{{gameId}}/moves",
+              "host": ["{{gameServiceUrl}}"],
+              "path": ["games", "{{gameId}}", "moves"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

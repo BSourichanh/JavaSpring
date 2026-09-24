@@ -1,0 +1,24 @@
+meta {
+  name: 1. Heartbeat (:8080)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{gameServiceUrl}}/heartbeat
+  body: none
+  auth: none
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Retourne un entier entre 40 et 230", function() {
+    const val = res.getBody();
+    expect(val).to.be.a('number');
+    expect(val).to.be.at.least(40);
+    expect(val).to.be.at.most(230);
+  });
+}

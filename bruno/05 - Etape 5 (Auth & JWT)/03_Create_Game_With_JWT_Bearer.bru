@@ -1,0 +1,42 @@
+meta {
+  name: 3. Créer Partie avec JWT Bearer (:8080)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{gameServiceUrl}}/games
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{jwtToken}}
+}
+
+body:json {
+  {
+    "gameType": "tictactoe"
+  }
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Partie créée avec ID valide", function() {
+    const data = res.getBody();
+    expect(data.id).to.be.a('string');
+    expect(data.factoryId).to.equal("tictactoe");
+    
+    bru.setVar("gameId", data.id);
+    if (typeof bru.setEnvVar === 'function') {
+      bru.setEnvVar("gameId", data.id);
+    }
+  });
+}

@@ -47,4 +47,17 @@ public class TicTacToePlugin implements GamePlugin {
         int size = (boardSize != null && boardSize > 0) ? boardSize : defaultBoardSize;
         return factory.createGame(players, size);
     }
+
+    @Override
+    public Game createGame(Integer playerCount, Integer boardSize, java.util.Collection<java.util.UUID> playerIds) {
+        int size = (boardSize != null && boardSize > 0) ? boardSize : defaultBoardSize;
+        if (playerIds != null && !playerIds.isEmpty()) {
+            java.util.Set<java.util.UUID> players = new java.util.LinkedHashSet<>(playerIds);
+            while (players.size() < defaultPlayerCount) {
+                players.add(java.util.UUID.randomUUID());
+            }
+            return factory.createGame(size, players);
+        }
+        return createGame(playerCount, boardSize);
+    }
 }

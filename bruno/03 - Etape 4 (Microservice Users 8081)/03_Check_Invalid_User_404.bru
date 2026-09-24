@@ -1,0 +1,21 @@
+meta {
+  name: 6. Vérifier Utilisateur Invalide (:8081)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{userServiceUrl}}/users/00000000-0000-0000-0000-000000000000/valid
+  body: none
+  auth: none
+}
+
+tests {
+  test("Code HTTP 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("L'utilisateur inconnu est déclaré invalide (false)", function() {
+    expect(res.getBody()).to.equal(false);
+  });
+}
