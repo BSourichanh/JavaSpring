@@ -128,5 +128,3 @@ cd /home/user/Documents/Cours/JavaSpringUsers && ./mvnw clean test
 
 - **Swagger UI** : `http://localhost:8080/swagger-ui.html`
 - **Collections Bruno** : Situées dans le dossier [`bruno/`](file:///home/user/Documents/Cours/JavaSpring/bruno) (requêtes pas à pas des étapes 1 à 5).
-- **Vault Obsidian (Notes et guides complets)** :
-  `/home/user/Documents/Obsidian_Vault/01_Cours/Java Spring/`
