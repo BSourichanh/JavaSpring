@@ -100,8 +100,12 @@ cd /home/user/Documents/Cours/JavaSpringUsers
 ```bash
 cd /home/user/Documents/Cours/JavaSpring
 
+# Optionnel : configurer les variables d'environnement (JWT_SECRET)
+cp .env.example .env
+
 # Mode Mémoire (par défaut)
 ./mvnw spring-boot:run
+
 
 # Mode JPA + MySQL Docker
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=jpa,mysql
