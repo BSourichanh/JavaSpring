@@ -1,17 +1,17 @@
 # 🎮 Square Games API & User Microservice
 
-> Architecture microservices Spring Boot & Java 21 démontrant l'ensemble des concepts fondamentaux : Inversion de Contrôle, Plugins modulaires, Internationalisation (i18n), Persistance multi-sources (Pattern DAO : Mémoire, JDBC, JPA), Communication Inter-services (`RestClient`), et Sécurisation Stateless (Spring Security, BCrypt, JJWT, RBAC).
+> Architecture microservices Spring Boot & Java 21 démontrant l'ensemble des concepts fondamentaux : Inversion de Contrôle, Plugins modulaires, Internationalisation (i18n), Persistance multi-sources (Pattern DAO : Mémoire, JDBC, JPA), Communication Inter-services (`RestClient`), Sécurisation Stateless (Spring Security, BCrypt, JJWT, RBAC), et Frontend Web SPA complet.
 
 ---
 
 ## 🏛️ Architecture Globale
 
-Le projet s'articule autour de deux microservices collaborant via HTTP REST et sécurisés par JSON Web Tokens :
+Le projet s'articule autour de deux microservices collaborant via HTTP REST et sécurisés par JSON Web Tokens, accompagnés d'une interface web moderne :
 
 ```text
 ┌────────────────────────────────────────────────────────┐
 │                      Client HTTP                       │
-│             (Bruno, Swagger UI, Web App)              │
+│        (Frontend SPA Web, Bruno, Swagger UI)          │
 └──────────────────────────┬─────────────────────────────┘
                            │
              ┌─────────────┴─────────────┐
@@ -23,12 +23,26 @@ Le projet s'articule autour de deux microservices collaborant via HTTP REST et s
 ┌──────────────────────────┐   ┌──────────────────────────┐
 │  User Service (:8081)    │   │ Square Games API (:8080) │
 ├──────────────────────────┤   ├──────────────────────────┤
-│ - Inscription & Rôles    │   │ - Moteur de jeux         │
-│ - BCrypt Password Hash   │   │ - Morpion, Taquin, P4    │
-│ - Génération JWT HS256   │   │ - Validation locale JWT  │
-│ - RBAC (@PreAuthorize)   │   │ - DAO: Memory, JDBC, JPA │
+│ - Inscription & Rôles    │   │ - Frontend SPA statique  │
+│ - BCrypt Password Hash   │   │ - Moteur de jeux corrigé │
+│ - Génération JWT HS256   │   │ - Morpion, Taquin, P4    │
+│ - RBAC (@PreAuthorize)   │   │ - Validation locale JWT  │
+│ - H2 Database            │   │ - DAO: Memory, JDBC, JPA │
 └──────────────────────────┘   └──────────────────────────┘
 ```
+
+---
+
+## 💻 Interface Web SPA (Single Page Application)
+
+L'application intègre une interface web complète servie directement sur `http://localhost:8080/` :
+- **Authentification & Gestion de profil** : Inscription et connexion avec stockage sécurisé du JWT dans le `localStorage`.
+- **Catalogue & Création de parties** : Support multilingue (FR / EN) résolu dynamiquement via l'en-tête `Accept-Language`.
+- **Arène de jeu temps réel** :
+  - **Morpion (Tic-Tac-Toe)** : Placement dynamique des pions avec indicateur visuel de tour de rôle.
+  - **Puissance 4 (Connect Four)** : Grille 7x6 avec moteur de gravité par colonne.
+  - **Taquin (15-Puzzle)** : Moteur autonome résoluble (`FixedTaquinGame`), détection d'adjacence stricte et mise en valeur interactive des seules tuiles déplaçables (halo cyan pulsant).
+- **Historique & Polling** : Rechargement automatique des coups et consultation des parties de l'utilisateur.
 
 ---
 
@@ -39,7 +53,7 @@ Le projet s'articule autour de deux microservices collaborant via HTTP REST et s
 - Première API REST et principes de l'inversion de contrôle Spring sans `new`.
 
 ### 2. Itération 2 — Architecture par Plugins & Multilingue (i18n)
-- Découplage du moteur de jeu tiers (`fr.le_campus_numerique.square_games:engine`) via l'interface `GamePlugin`.
+- Découplage du moteur de jeu tiers via l'interface `GamePlugin`.
 - Plugins modulaires : **Morpion (Tic-Tac-Toe)**, **Taquin (Puzzle 15)**, **Puissance 4 (Connect Four)**.
 - DTOs immuables (`record` Java 21) avec tolérance aux alias Jackson (`@JsonProperty`, `@JsonAlias`).
 - Internationalisation dynamique via `MessageSource` et l'en-tête `Accept-Language` (`fr`, `en`, fallback).
@@ -74,7 +88,8 @@ Le projet s'articule autour de deux microservices collaborant via HTTP REST et s
 
 - **Java** : OpenJDK 21+
 - **Framework** : Spring Boot 4.x / Spring Framework 6.x
-- **Sécurité** : Spring Security 6.x, JJWT (`io.jsonwebtoken` 0.12.6)
+- **Frontend** : HTML5, CSS3 Moderne (Glassmorphism & animations CSS), Vanilla JavaScript SPA
+- **Sécurité** : Spring Security 6.x, JJWT (`io.jsonwebtoken` 0.12.6), BCrypt
 - **Persistance** : Spring Data JPA, Hibernate, Spring JDBC, MySQL Connector / H2
 - **Documentation API** : SpringDoc OpenAPI 2.8.5 (Swagger UI)
 - **Tests** : JUnit 5, Mockito, Spring Test (MockMvc)
@@ -96,7 +111,7 @@ cd /home/user/Documents/Cours/JavaSpringUsers
 ./mvnw spring-boot:run
 ```
 
-### 3. Démarrer l'API Square Games (Port 8080)
+### 3. Démarrer l'API Square Games & le Frontend (Port 8080)
 ```bash
 cd /home/user/Documents/Cours/JavaSpring
 
@@ -106,7 +121,6 @@ cp .env.example .env
 # Mode Mémoire (par défaut)
 ./mvnw spring-boot:run
 
-
 # Mode JPA + MySQL Docker
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=jpa,mysql
 
@@ -114,12 +128,14 @@ cp .env.example .env
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=jpa,h2
 ```
 
+L'application web est accessible directement sur : **`http://localhost:8080/`**
+
 ---
 
 ## 🧪 Tests Automatisés
 
 ```bash
-# Tests de l'API de jeux (19 tests d'intégration)
+# Tests de l'API de jeux (23 tests unitaires et d'intégration)
 cd /home/user/Documents/Cours/JavaSpring && ./mvnw clean test
 
 # Tests du service utilisateurs (9 tests d'intégration)
@@ -130,5 +146,6 @@ cd /home/user/Documents/Cours/JavaSpringUsers && ./mvnw clean test
 
 ## 📖 Documentation & Outils
 
+- **Application Web SPA** : `http://localhost:8080/`
 - **Swagger UI** : `http://localhost:8080/swagger-ui.html`
 - **Collections Bruno** : Situées dans le dossier [`bruno/`](file:///home/user/Documents/Cours/JavaSpring/bruno) (requêtes pas à pas des étapes 1 à 5).

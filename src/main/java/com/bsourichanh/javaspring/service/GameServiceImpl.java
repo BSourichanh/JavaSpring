@@ -73,20 +73,43 @@ public class GameServiceImpl implements GameService {
             throw new IllegalStateException("Ce n'est pas le tour du joueur : " + userId);
         }
 
-        fr.le_campus_numerique.square_games.engine.CellPosition target =
+        final fr.le_campus_numerique.square_games.engine.CellPosition clickedPosition =
                 new fr.le_campus_numerique.square_games.engine.CellPosition(x, y);
+        final fr.le_campus_numerique.square_games.engine.CellPosition colGravityTarget =
+                new fr.le_campus_numerique.square_games.engine.CellPosition(x, -1);
 
-        // Recherche d'un jeton déplaçable appartenant au joueur
-        fr.le_campus_numerique.square_games.engine.Token tokenToMove = game.getRemainingTokens().stream()
+        fr.le_campus_numerique.square_games.engine.Token tokenToMove = null;
+        fr.le_campus_numerique.square_games.engine.CellPosition targetToApply = clickedPosition;
+
+        // 1. Recherche dans les jetons restants (Morpion avec (x,y), ou Puissance 4 avec colonne (x,-1))
+        tokenToMove = game.getRemainingTokens().stream()
                 .filter(t -> t.getOwnerId().map(id -> id.toString().equals(userId)).orElse(false))
-                .filter(t -> t.getAllowedMoves().contains(target))
+                .filter(t -> t.getAllowedMoves().contains(clickedPosition) || t.getAllowedMoves().contains(colGravityTarget))
                 .findFirst()
                 .orElse(null);
 
+        if (tokenToMove != null) {
+            if (!tokenToMove.getAllowedMoves().contains(clickedPosition) && tokenToMove.getAllowedMoves().contains(colGravityTarget)) {
+                targetToApply = colGravityTarget;
+            }
+        }
+
+        // 2. Recherche sur le plateau (Taquin)
         if (tokenToMove == null) {
+            // Cas 2a : Le joueur a cliqué sur la tuile à déplacer vers l'espace vide voisin
+            fr.le_campus_numerique.square_games.engine.Token clickedToken = game.getBoard().get(clickedPosition);
+            if (clickedToken != null && !clickedToken.getAllowedMoves().isEmpty()
+                    && clickedToken.getOwnerId().map(id -> id.toString().equals(userId)).orElse(true)) {
+                tokenToMove = clickedToken;
+                targetToApply = clickedToken.getAllowedMoves().iterator().next();
+            }
+        }
+
+        if (tokenToMove == null) {
+            // Cas 2b : Le joueur a cliqué sur la case vide vers laquelle glisser une tuile voisine
             tokenToMove = game.getBoard().values().stream()
                     .filter(t -> t.getOwnerId().map(id -> id.toString().equals(userId)).orElse(true))
-                    .filter(t -> t.getAllowedMoves().contains(target))
+                    .filter(t -> t.getAllowedMoves().contains(clickedPosition))
                     .findFirst()
                     .orElse(null);
         }
@@ -96,7 +119,7 @@ public class GameServiceImpl implements GameService {
         }
 
         try {
-            tokenToMove.moveTo(target);
+            tokenToMove.moveTo(targetToApply);
         } catch (fr.le_campus_numerique.square_games.engine.InvalidPositionException e) {
             throw new IllegalArgumentException("Position invalide : " + e.getMessage(), e);
         }

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Square Games Platform — Multi-Jeux REST API</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">🎮</div>
+      <div class="logo-text">
+        <h1>Square Games</h1>
+        <p>Plateforme de Jeux Microservices & REST API</p>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <!-- Heartbeat Pulse Monitor -->
+      <div class="heartbeat-badge" id="heartbeat-badge" title="Statut du serveur de jeu (:8080)">
+        <span class="pulse-dot"></span>
+        <span id="heartbeat-val">-- bpm</span>
+      </div>
+
+      <!-- i18n Language Selector -->
+      <div class="lang-selector">
+        <button class="lang-btn active" id="btn-lang-fr" onclick="setLanguage('fr')">🇫🇷 FR</button>
+        <button class="lang-btn" id="btn-lang-en" onclick="setLanguage('en')">🇬🇧 EN</button>
+      </div>
+
+      <!-- User Area -->
+      <div id="user-nav-area">
+        <!-- Rendered dynamically by JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Main Content -->
+  <main>
+    <div class="dashboard-grid">
+
+      <!-- Left Column: Controls & Configuration -->
+      <aside>
+        
+        <!-- Auth Card -->
+        <div class="card" id="auth-card">
+          <h2 id="auth-card-title">🔐 Connexion / Inscription</h2>
+          
+          <div id="auth-tabs" class="btn-group" style="margin-bottom: 1rem;">
+            <button class="btn btn-secondary active" id="tab-login" onclick="showAuthTab('login')">Se Connecter</button>
+            <button class="btn btn-secondary" id="tab-register" onclick="showAuthTab('register')">S'inscrire</button>
+          </div>
+
+          <!-- Login Form -->
+          <form id="form-login" onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label for="login-username">Nom d'utilisateur</label>
+              <input type="text" id="login-username" placeholder="ex: Alice" required value="Alice">
+            </div>
+            <div class="form-group">
+              <label for="login-password">Mot de passe</label>
+              <input type="password" id="login-password" placeholder="Mot de passe" required value="password123">
+            </div>
+            <button type="submit" class="btn">Connexion (JWT)</button>
+          </form>
+
+          <!-- Register Form -->
+          <form id="form-register" onsubmit="handleRegister(event)" style="display: none;">
+            <div class="form-group">
+              <label for="reg-username">Nom d'utilisateur</label>
+              <input type="text" id="reg-username" placeholder="ex: Bob" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-email">Adresse Email</label>
+              <input type="email" id="reg-email" placeholder="bob@example.com" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-password">Mot de passe</label>
+              <input type="password" id="reg-password" placeholder="Mot de passe" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-role">Rôle</label>
+              <select id="reg-role">
+                <option value="ROLE_USER">Joueur Standard (ROLE_USER)</option>
+                <option value="ROLE_ADMIN">Administrateur (ROLE_ADMIN)</option>
+              </select>
+            </div>
+            <button type="submit" class="btn">Créer un compte</button>
+          </form>
+
+          <!-- Logged In Info -->
+          <div id="logged-in-view" style="display: none;">
+            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+              <p style="font-size: 0.85rem; color: var(--text-muted);">Connecté en tant que :</p>
+              <p style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;" id="user-display-name">--</p>
+              <p style="font-size: 0.75rem; color: var(--text-muted);">UUID Utilisateur :</p>
+              <code style="font-size: 0.75rem; word-break: break-all; color: var(--accent-cyan);" id="user-display-id">--</code>
+            </div>
+            <button class="btn btn-secondary btn-danger" onclick="handleLogout()">Se Déconnecter</button>
+          </div>
+        </div>
+
+        <!-- Catalog & Game Creation -->
+        <div class="card">
+          <h2>🎲 Nouveau Jeu</h2>
+          
+          <label>Sélectionner le Jeu</label>
+          <div class="catalog-list" id="catalog-container">
+            <!-- Dynamically populated from /api/catalog/games -->
+          </div>
+
+          <form id="form-create-game" onsubmit="handleCreateGame(event)">
+            <input type="hidden" id="selected-game-type" value="tictactoe">
+            
+            <div class="form-group">
+              <label for="input-board-size">Taille de la Grille (Plateau)</label>
+              <input type="number" id="input-board-size" min="3" max="8" value="3" required>
+            </div>
+
+            <div class="form-group">
+              <label for="input-player-count">Nombre de Joueurs</label>
+              <input type="number" id="input-player-count" min="1" max="4" value="2" required>
+            </div>
+
+            <button type="submit" class="btn">Lancer la Partie 🚀</button>
+          </form>
+        </div>
+
+        <!-- User Games History -->
+        <div class="card">
+          <h2>📜 Mes Parties</h2>
+          <div class="history-list" id="games-history-list">
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Connectez-vous pour voir vos parties.</p>
+          </div>
+        </div>
+
+        <!-- Admin Panel (Shown for ROLE_ADMIN) -->
+        <div class="card" id="admin-card" style="display: none;">
+          <h2>👑 Administration (User Service :8081)</h2>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Gestion des utilisateurs via RBAC (@PreAuthorize)</p>
+          <div id="admin-user-list" class="history-list"></div>
+        </div>
+
+      </aside>
+
+      <!-- Right Column: Interactive Game Arena -->
+      <section>
+        <div class="card" style="min-height: 540px;">
+          <div class="game-view-header">
+            <div>
+              <h2 id="active-game-title">Aucune partie active</h2>
+              <p style="font-size: 0.8rem; color: var(--text-muted);" id="active-game-subtitle">Choisissez un jeu à gauche pour commencer.</p>
+            </div>
+            
+            <div id="active-game-badges" style="display: flex; gap: 0.5rem; align-items: center;"></div>
+          </div>
+
+          <!-- Turn & Action Banner -->
+          <div id="turn-indicator" style="display: none; margin-bottom: 1rem;">
+            <div class="turn-banner" id="turn-banner">
+              <span id="turn-icon">⏳</span>
+              <span id="turn-text">En attente de démarrage...</span>
+            </div>
+          </div>
+
+          <!-- Interactive Board Display -->
+          <div class="board-container">
+            <div id="board-grid" class="board-grid" style="display: none;">
+              <!-- Dynamically generated clickable cells -->
+            </div>
+            <div id="board-placeholder" style="text-align: center; color: var(--text-muted); padding: 4rem 1rem;">
+              <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.4;">🎯</div>
+              <p>Sélectionnez un jeu ou créez une partie pour charger le plateau interactif.</p>
+            </div>
+          </div>
+
+          <!-- Game Action Controls -->
+          <div id="game-controls" style="display: none; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+            <button class="btn btn-secondary" onclick="refreshCurrentGame()">🔄 Rafraîchir l'État</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>Square Games Platform — Conçu avec Spring Boot 4.x, Java 21, Spring Security (JWT) & Architecture Microservices</p>
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -50,18 +50,15 @@ public class TaquinPlugin implements GamePlugin {
 
     @Override
     public Game createGame(Integer playerCount, Integer boardSize) {
-        int players = (playerCount != null && playerCount > 0) ? playerCount : defaultPlayerCount;
         int size = (boardSize != null && boardSize > 0) ? boardSize : defaultBoardSize;
-        return factory.createGame(players, size);
+        return new FixedTaquinGame(size, java.util.UUID.randomUUID());
     }
 
     @Override
     public Game createGame(Integer playerCount, Integer boardSize, java.util.Collection<java.util.UUID> playerIds) {
         int size = (boardSize != null && boardSize > 0) ? boardSize : defaultBoardSize;
-        if (playerIds != null && !playerIds.isEmpty()) {
-            return factory.createGame(size, java.util.Set.of(playerIds.iterator().next()));
-        }
-        return createGame(playerCount, boardSize);
+        java.util.UUID playerId = (playerIds != null && !playerIds.isEmpty()) ? playerIds.iterator().next() : java.util.UUID.randomUUID();
+        return new FixedTaquinGame(size, playerId);
     }
 }
 

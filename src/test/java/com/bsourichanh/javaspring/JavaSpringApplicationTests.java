@@ -359,5 +359,77 @@ class JavaSpringApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(gameId));
     }
+
+    @Test
+    void testPlayMoveConnectFour() throws Exception {
+        String token = jwtService.generateToken(TEST_USER_ID, "alice", "ROLE_USER", 3600000);
+        String json = """
+                { "gameType": "connect4", "playerCount": 2, "boardSize": 7 }
+                """;
+
+        String createResponse = mockMvc.perform(post("/games")
+                        .contentType("application/json")
+                        .header("Authorization", "Bearer " + token)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String gameId = com.jayway.jsonpath.JsonPath.read(createResponse, "$.id");
+
+        mockMvc.perform(post("/games/" + gameId + "/moves")
+                        .contentType("application/json")
+                        .header("Authorization", "Bearer " + token)
+                        .content("{\"x\": 0, \"y\": 0}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(gameId));
+    }
+
+    @Test
+    void testPlayMoveTaquin() throws Exception {
+        String token = jwtService.generateToken(TEST_USER_ID, "alice", "ROLE_USER", 3600000);
+        String json = """
+                { "gameType": "taquin", "playerCount": 1, "boardSize": 4 }
+                """;
+
+        String createResponse = mockMvc.perform(post("/games")
+                        .contentType("application/json")
+                        .header("Authorization", "Bearer " + token)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String gameId = com.jayway.jsonpath.JsonPath.read(createResponse, "$.id");
+
+        // Récupérer le jeu pour trouver une case déplaçable
+        String getResponse = mockMvc.perform(get("/games/" + gameId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        java.util.Map<String, Object> board = com.jayway.jsonpath.JsonPath.read(getResponse, "$.board");
+        int moveX = -1;
+        int moveY = -1;
+        for (java.util.Map.Entry<String, Object> entry : board.entrySet()) {
+            java.util.Map<String, Object> tokenData = (java.util.Map<String, Object>) entry.getValue();
+            java.util.List<?> allowedMoves = (java.util.List<?>) tokenData.get("allowedMoves");
+            if (allowedMoves != null && !allowedMoves.isEmpty()) {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("x\\s*=\\s*(\\d+).*?y\\s*=\\s*(\\d+)").matcher(entry.getKey());
+                if (m.find()) {
+                    moveX = Integer.parseInt(m.group(1));
+                    moveY = Integer.parseInt(m.group(2));
+                    break;
+                }
+            }
+        }
+        org.junit.jupiter.api.Assertions.assertTrue(moveX >= 0 && moveY >= 0);
+
+        mockMvc.perform(post("/games/" + gameId + "/moves")
+                        .contentType("application/json")
+                        .header("Authorization", "Bearer " + token)
+                        .content("{\"x\": " + moveX + ", \"y\": " + moveY + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(gameId));
+    }
 }
+
 
