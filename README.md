@@ -144,8 +144,25 @@ cd /home/user/Documents/Cours/JavaSpringUsers && ./mvnw clean test
 
 ---
 
+## 🛡️ Durcissement & Refactorisation (Audit de Qualité & Sécurité)
+
+Suite à l'audit de code et d'architecture, les améliorations suivantes ont été intégrées :
+- **Cybersécurité (OWASP)** :
+  - **Protection BOLA (Broken Object Level Authorization)** sur `GET /games/{id}` : vérification stricte de l'appartenance de l'utilisateur à la partie (`game.getPlayerIds()`), renvoyant `403 Forbidden` pour les tiers.
+  - **Validation des payloads de jeu** : ajout des contraintes `@NotNull` sur [`MoveDto`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/dto/MoveDto.java) et vérification de non-nullité évitant tout `NullPointerException` (HTTP 500).
+- **Patterns de Conception** :
+  - **Pattern Stratégie (Open-Closed Principle)** : ajout de `canHandle(gameType)` sur [`GamePlugin`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/plugin/GamePlugin.java), fermant [`GameServiceImpl`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/service/GameServiceImpl.java) à toute modification lors de l'ajout futur de nouveaux plugins de jeu.
+  - **Inversion de Dépendances (DIP)** : découplage de [`UserValidationService`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/service/UserValidationService.java) en interface et classe concrète [`UserValidationServiceImpl`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/service/UserValidationServiceImpl.java).
+  - **Gestion Globale des Erreurs** : mise en place de [`GlobalExceptionHandler`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/controller/GlobalExceptionHandler.java) (`@RestControllerAdvice`) pour standardiser les réponses d'erreurs (400, 403, 404, validation).
+  - **Encapsulation JPA** : refactorisation de [`GameEntity`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/entity/GameEntity.java) et [`GameTokenEntity`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/entity/GameTokenEntity.java) avec attributs privés et accesseurs.
+  - **Concurrence & Aléatoire** : utilisation de `ThreadLocalRandom.current()` dans [`RandomHeartbeatSensor`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/service/RandomHeartbeatSensor.java).
+
+---
+
 ## 📖 Documentation & Outils
 
 - **Application Web SPA** : `http://localhost:8080/`
 - **Swagger UI** : `http://localhost:8080/swagger-ui.html`
 - **Collections Bruno** : Situées dans le dossier [`bruno/`](file:///home/user/Documents/Cours/JavaSpring/bruno) (requêtes pas à pas des étapes 1 à 5).
+- **Rapport d'Audit Complet** : Fiche détaillée dans le coffre Obsidian [`Audit_Code_Et_Securite.md`](file:///home/user/Documents/Obsidian_Vault/01_Cours/Java%20Spring/Audit_Code_Et_Securite.md).
+

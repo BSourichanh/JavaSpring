@@ -8,17 +8,17 @@ public class GameTokenEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long id;
+    private Long id;
 
-    public String ownerId;
+    private String ownerId;
 
-    public String name;
+    private String name;
 
-    public boolean removed;
+    private boolean removed;
 
-    public Integer x;
+    private Integer x;
 
-    public Integer y;
+    private Integer y;
 
     public GameTokenEntity() {}
 
@@ -29,4 +29,22 @@ public class GameTokenEntity {
         this.x = x;
         this.y = y;
     }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getOwnerId() { return ownerId; }
+    public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public boolean isRemoved() { return removed; }
+    public void setRemoved(boolean removed) { this.removed = removed; }
+
+    public Integer getX() { return x; }
+    public void setX(Integer x) { this.x = x; }
+
+    public Integer getY() { return y; }
+    public void setY(Integer y) { this.y = y; }
 }

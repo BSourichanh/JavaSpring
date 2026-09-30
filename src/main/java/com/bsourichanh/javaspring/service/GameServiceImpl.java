@@ -3,10 +3,14 @@ package com.bsourichanh.javaspring.service;
 import com.bsourichanh.javaspring.dao.GameDao;
 import com.bsourichanh.javaspring.dto.GameCreationParams;
 import com.bsourichanh.javaspring.plugin.GamePlugin;
+import fr.le_campus_numerique.square_games.engine.CellPosition;
 import fr.le_campus_numerique.square_games.engine.Game;
+import fr.le_campus_numerique.square_games.engine.InvalidPositionException;
+import fr.le_campus_numerique.square_games.engine.Token;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -28,15 +32,15 @@ public class GameServiceImpl implements GameService {
     @Override
     public Game createGame(GameCreationParams params, String userId) {
         GamePlugin plugin = getPluginForType(params.gameType());
-        java.util.UUID userUuid = null;
+        UUID userUuid = null;
         if (userId != null && !userId.isBlank()) {
             try {
-                userUuid = java.util.UUID.fromString(userId);
+                userUuid = UUID.fromString(userId);
             } catch (IllegalArgumentException ignored) {}
         }
         Game game;
         if (userUuid != null) {
-            game = plugin.createGame(params.playerCount(), params.boardSize(), java.util.List.of(userUuid));
+            game = plugin.createGame(params.playerCount(), params.boardSize(), List.of(userUuid));
         } else {
             game = plugin.createGame(params.playerCount(), params.boardSize());
         }
@@ -54,7 +58,7 @@ public class GameServiceImpl implements GameService {
     @Override
     public Collection<Game> getGamesForUser(String userId) {
         if (userId == null || userId.isBlank()) {
-            return java.util.List.of();
+            return List.of();
         }
         return gameDao.findAll()
                 .filter(game -> game.getPlayerIds().stream()
@@ -73,13 +77,11 @@ public class GameServiceImpl implements GameService {
             throw new IllegalStateException("Ce n'est pas le tour du joueur : " + userId);
         }
 
-        final fr.le_campus_numerique.square_games.engine.CellPosition clickedPosition =
-                new fr.le_campus_numerique.square_games.engine.CellPosition(x, y);
-        final fr.le_campus_numerique.square_games.engine.CellPosition colGravityTarget =
-                new fr.le_campus_numerique.square_games.engine.CellPosition(x, -1);
+        final CellPosition clickedPosition = new CellPosition(x, y);
+        final CellPosition colGravityTarget = new CellPosition(x, -1);
 
-        fr.le_campus_numerique.square_games.engine.Token tokenToMove = null;
-        fr.le_campus_numerique.square_games.engine.CellPosition targetToApply = clickedPosition;
+        Token tokenToMove = null;
+        CellPosition targetToApply = clickedPosition;
 
         // 1. Recherche dans les jetons restants (Morpion avec (x,y), ou Puissance 4 avec colonne (x,-1))
         tokenToMove = game.getRemainingTokens().stream()
@@ -97,7 +99,7 @@ public class GameServiceImpl implements GameService {
         // 2. Recherche sur le plateau (Taquin)
         if (tokenToMove == null) {
             // Cas 2a : Le joueur a cliqué sur la tuile à déplacer vers l'espace vide voisin
-            fr.le_campus_numerique.square_games.engine.Token clickedToken = game.getBoard().get(clickedPosition);
+            Token clickedToken = game.getBoard().get(clickedPosition);
             if (clickedToken != null && !clickedToken.getAllowedMoves().isEmpty()
                     && clickedToken.getOwnerId().map(id -> id.toString().equals(userId)).orElse(true)) {
                 tokenToMove = clickedToken;
@@ -120,28 +122,21 @@ public class GameServiceImpl implements GameService {
 
         try {
             tokenToMove.moveTo(targetToApply);
-        } catch (fr.le_campus_numerique.square_games.engine.InvalidPositionException e) {
+        } catch (InvalidPositionException e) {
             throw new IllegalArgumentException("Position invalide : " + e.getMessage(), e);
         }
 
         return gameDao.upsert(game);
     }
 
-
+    /**
+     * Sélectionne le plugin de jeu adéquat via le pattern Strategy (Open-Closed Principle).
+     */
     private GamePlugin getPluginForType(String type) {
-        if (type == null || type.isBlank()) {
-            type = "tictactoe";
-        }
-        String normalizedType = type.toLowerCase().trim();
-        for (GamePlugin gamePlugin : gamePlugins) {
-            String factoryId = gamePlugin.getFactoryId().toLowerCase();
-            if (factoryId.equals(normalizedType)
-                    || (normalizedType.contains("tic") && factoryId.contains("tictac"))
-                    || (normalizedType.contains("taquin") && factoryId.contains("puzzle"))
-                    || (normalizedType.contains("connect") && factoryId.contains("connect"))) {
-                return gamePlugin;
-            }
-        }
-        throw new IllegalArgumentException("Type de jeu non supporté : " + type);
+        String targetType = (type == null || type.isBlank()) ? "tictactoe" : type;
+        return gamePlugins.stream()
+                .filter(plugin -> plugin.canHandle(targetType))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Type de jeu non supporté : " + type));
     }
 }

@@ -82,6 +82,15 @@ public class GameController {
         if (game == null) {
             return ResponseEntity.notFound().build();
         }
+
+        // BOLA (Broken Object Level Authorization) : Seuls les participants peuvent voir la partie
+        boolean isParticipant = game.getPlayerIds().stream()
+                .anyMatch(id -> id.toString().equals(resolvedUserId));
+        if (!isParticipant) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Accès interdit à cette partie"));
+        }
+
         return ResponseEntity.ok(game);
     }
 
@@ -110,6 +119,11 @@ public class GameController {
         if (resolvedUserId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Authentification requise (Bearer JWT ou X-UserId valide)"));
+        }
+
+        if (move == null || move.x() == null || move.y() == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Coordonnées de coup invalides (x et y requis)"));
         }
 
         Game game = gameService.getGame(gameId);

@@ -57,15 +57,25 @@ public class ConnectFourPlugin implements GamePlugin {
 
     @Override
     public Game createGame(Integer playerCount, Integer boardSize, java.util.Collection<java.util.UUID> playerIds) {
+        int targetPlayerCount = (playerCount != null && playerCount > 0) ? playerCount : defaultPlayerCount;
         int size = (boardSize != null && boardSize > 0) ? boardSize : defaultBoardSize;
         if (playerIds != null && !playerIds.isEmpty()) {
             java.util.Set<java.util.UUID> players = new java.util.LinkedHashSet<>(playerIds);
-            while (players.size() < defaultPlayerCount) {
+            while (players.size() < targetPlayerCount) {
                 players.add(java.util.UUID.randomUUID());
             }
             return factory.createGame(size, players);
         }
         return createGame(playerCount, boardSize);
+    }
+
+    @Override
+    public boolean canHandle(String gameType) {
+        if (gameType == null || gameType.isBlank()) {
+            return false;
+        }
+        String t = gameType.toLowerCase().trim();
+        return t.equals(getFactoryId().toLowerCase()) || t.contains("connect") || t.contains("puissance");
     }
 }
 

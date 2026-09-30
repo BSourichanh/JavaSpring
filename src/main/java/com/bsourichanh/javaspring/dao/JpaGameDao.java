@@ -38,7 +38,7 @@ public class JpaGameDao implements GameDao {
         if (game != null) {
             return Optional.of(game);
         }
-        return repository.findById(gameId).map(entity -> gameCache.get(entity.id));
+        return repository.findById(gameId).map(entity -> gameCache.get(entity.getId()));
     }
 
     @Override
@@ -63,31 +63,31 @@ public class JpaGameDao implements GameDao {
 
     private GameEntity toEntity(Game game) {
         GameEntity entity = new GameEntity();
-        entity.id = game.getId().toString();
-        entity.factoryId = game.getFactoryId();
-        entity.boardSize = game.getBoardSize();
-        entity.status = game.getStatus().name();
-        entity.currentPlayerId = game.getCurrentPlayerId() != null ? game.getCurrentPlayerId().toString() : null;
-        entity.playerIds = String.join(",", game.getPlayerIds().stream().map(Object::toString).toList());
+        entity.setId(game.getId().toString());
+        entity.setFactoryId(game.getFactoryId());
+        entity.setBoardSize(game.getBoardSize());
+        entity.setStatus(game.getStatus().name());
+        entity.setCurrentPlayerId(game.getCurrentPlayerId() != null ? game.getCurrentPlayerId().toString() : null);
+        entity.setPlayerIds(String.join(",", game.getPlayerIds().stream().map(Object::toString).toList()));
 
         // Sauvegarde des jetons sur le plateau
         for (Map.Entry<CellPosition, Token> entry : game.getBoard().entrySet()) {
             Token token = entry.getValue();
             CellPosition pos = entry.getKey();
             String ownerId = token.getOwnerId().map(Object::toString).orElse(null);
-            entity.tokens.add(new GameTokenEntity(ownerId, token.getName(), false, pos.x(), pos.y()));
+            entity.getTokens().add(new GameTokenEntity(ownerId, token.getName(), false, pos.x(), pos.y()));
         }
 
         // Sauvegarde des jetons restants
         for (Token token : game.getRemainingTokens()) {
             String ownerId = token.getOwnerId().map(Object::toString).orElse(null);
-            entity.tokens.add(new GameTokenEntity(ownerId, token.getName(), false, null, null));
+            entity.getTokens().add(new GameTokenEntity(ownerId, token.getName(), false, null, null));
         }
 
         // Sauvegarde des jetons éliminés
         for (Token token : game.getRemovedTokens()) {
             String ownerId = token.getOwnerId().map(Object::toString).orElse(null);
-            entity.tokens.add(new GameTokenEntity(ownerId, token.getName(), true, null, null));
+            entity.getTokens().add(new GameTokenEntity(ownerId, token.getName(), true, null, null));
         }
 
         return entity;

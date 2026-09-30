@@ -13,4 +13,11 @@ public interface GamePlugin {
     default Game createGame(Integer playerCount, Integer boardSize, java.util.Collection<java.util.UUID> playerIds) {
         return createGame(playerCount, boardSize);
     }
+
+    default boolean canHandle(String gameType) {
+        if (gameType == null || gameType.isBlank()) {
+            return false;
+        }
+        return getFactoryId().equalsIgnoreCase(gameType.trim());
+    }
 }

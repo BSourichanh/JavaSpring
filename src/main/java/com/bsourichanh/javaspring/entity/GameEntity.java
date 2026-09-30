@@ -10,22 +10,43 @@ import java.util.List;
 public class GameEntity {
 
     @Id
-    public String id;
+    private String id;
 
-    public String factoryId;
+    private String factoryId;
 
-    public int boardSize;
+    private int boardSize;
 
-    public String status;
+    private String status;
 
-    public String currentPlayerId;
+    private String currentPlayerId;
 
     @Column(columnDefinition = "TEXT")
-    public String playerIds;
+    private String playerIds;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "game_id")
-    public List<GameTokenEntity> tokens = new ArrayList<>();
+    private List<GameTokenEntity> tokens = new ArrayList<>();
 
     public GameEntity() {}
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public String getFactoryId() { return factoryId; }
+    public void setFactoryId(String factoryId) { this.factoryId = factoryId; }
+
+    public int getBoardSize() { return boardSize; }
+    public void setBoardSize(int boardSize) { this.boardSize = boardSize; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public String getCurrentPlayerId() { return currentPlayerId; }
+    public void setCurrentPlayerId(String currentPlayerId) { this.currentPlayerId = currentPlayerId; }
+
+    public String getPlayerIds() { return playerIds; }
+    public void setPlayerIds(String playerIds) { this.playerIds = playerIds; }
+
+    public List<GameTokenEntity> getTokens() { return tokens; }
+    public void setTokens(List<GameTokenEntity> tokens) { this.tokens = tokens; }
 }

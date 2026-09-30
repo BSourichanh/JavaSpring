@@ -60,5 +60,14 @@ public class TaquinPlugin implements GamePlugin {
         java.util.UUID playerId = (playerIds != null && !playerIds.isEmpty()) ? playerIds.iterator().next() : java.util.UUID.randomUUID();
         return new FixedTaquinGame(size, playerId);
     }
+
+    @Override
+    public boolean canHandle(String gameType) {
+        if (gameType == null || gameType.isBlank()) {
+            return false;
+        }
+        String t = gameType.toLowerCase().trim();
+        return t.equals(getFactoryId().toLowerCase()) || t.contains("taquin") || t.contains("puzzle");
+    }
 }
 

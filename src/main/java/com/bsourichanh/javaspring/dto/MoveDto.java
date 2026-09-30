@@ -1,3 +1,10 @@
 package com.bsourichanh.javaspring.dto;
 
-public record MoveDto(int x, int y) {}
+import jakarta.validation.constraints.NotNull;
+
+public record MoveDto(
+        @NotNull(message = "La coordonnée x est obligatoire")
+        Integer x,
+        @NotNull(message = "La coordonnée y est obligatoire")
+        Integer y
+) {}
