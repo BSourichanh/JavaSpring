@@ -1,6 +1,6 @@
 # 🎮 Square Games API & User Microservice
 
-> Architecture microservices Spring Boot & Java 21 démontrant l'ensemble des concepts fondamentaux : Inversion de Contrôle, Plugins modulaires, Internationalisation (i18n), Persistance multi-sources (Pattern DAO : Mémoire, JDBC, JPA), Communication Inter-services (`RestClient`), Sécurisation Stateless (Spring Security, BCrypt, JJWT, RBAC), et Frontend Web SPA complet.
+> Architecture microservices Spring Boot & Java 21 démontrant l'ensemble des concepts fondamentaux : Inversion de Contrôle, Plugins modulaires (Pattern Stratégie), Internationalisation (i18n), Persistance multi-sources (Pattern DAO : Mémoire, JDBC, JPA), Communication Inter-services (`RestClient`), Sécurisation Stateless (Spring Security, BCrypt, JJWT, RBAC), Gestion centralisée des exceptions (`@RestControllerAdvice`) et Frontend Web SPA complet.
 
 ---
 
@@ -26,8 +26,10 @@ Le projet s'articule autour de deux microservices collaborant via HTTP REST et s
 │ - Inscription & Rôles    │   │ - Frontend SPA statique  │
 │ - BCrypt Password Hash   │   │ - Moteur de jeux corrigé │
 │ - Génération JWT HS256   │   │ - Morpion, Taquin, P4    │
-│ - RBAC (@PreAuthorize)   │   │ - Validation locale JWT  │
-│ - H2 Database            │   │ - DAO: Memory, JDBC, JPA │
+│ - RBAC (@PreAuthorize)   │   │ - Pattern Stratégie      │
+│ - Validation Jakarta     │   │ - Validation locale JWT  │
+│ - GlobalExceptionHandler │   │ - DAO: Memory, JDBC, JPA │
+│ - H2 Database            │   │ - GlobalExceptionHandler │
 └──────────────────────────┘   └──────────────────────────┘
 ```
 
@@ -46,16 +48,17 @@ L'application intègre une interface web complète servie directement sur `http:
 
 ---
 
-## 🚀 Les 5 Itérations du Projet
+## 🚀 Les 5 Itérations & Évolutions d'Architecture
 
 ### 1. Itération 1 — Introduction & Inversion de Contrôle (IoC)
 - Endpoint de santé `/heartbeat` via injection de dépendance par constructeur (`HeartbeatSensor` / `RandomHeartbeatSensor`).
-- Première API REST et principes de l'inversion de contrôle Spring sans `new`.
+- Aléatoire haute performance sans contention de verrou via `ThreadLocalRandom`.
 
-### 2. Itération 2 — Architecture par Plugins & Multilingue (i18n)
+### 2. Itération 2 — Architecture par Plugins (Pattern Stratégie) & Multilingue (i18n)
 - Découplage du moteur de jeu tiers via l'interface `GamePlugin`.
+- **Pattern Stratégie (GoF) & Open-Closed Principle (OCP)** : Sélection dynamique des plugins via `canHandle(gameType)` sans modifier le service.
 - Plugins modulaires : **Morpion (Tic-Tac-Toe)**, **Taquin (Puzzle 15)**, **Puissance 4 (Connect Four)**.
-- DTOs immuables (`record` Java 21) avec tolérance aux alias Jackson (`@JsonProperty`, `@JsonAlias`).
+- DTOs immuables (`record` Java 21) utilisant des wrappers d'objets (`Integer`) et des annotations de validation Jakarta (`@NotNull`).
 - Internationalisation dynamique via `MessageSource` et l'en-tête `Accept-Language` (`fr`, `en`, fallback).
 
 ### 3. Itération 3 — Persistance & Pattern DAO
@@ -63,24 +66,28 @@ L'application intègre une interface web complète servie directement sur `http:
 - **3 implémentations étanches par profils Spring** :
   - `@Profile("memory")` : Cache en mémoire vive `ConcurrentHashMap`.
   - `@Profile("jdbc")` : Requêtes SQL natives avec `NamedParameterJdbcTemplate` et `schema.sql`.
-  - `@Profile("jpa")` : Mapping relationnel Spring Data JPA (`GameEntity`, `GameTokenEntity`, relation `@OneToMany`).
+  - `@Profile("jpa")` : Mapping relationnel Spring Data JPA (`GameEntity`, `GameTokenEntity`, relation `@OneToMany`) avec encapsulation complète (`private` et accesseurs).
 - **Sources de données** : MySQL Docker (port `6603`) et base H2 mémoire.
 
 ### 4. Itération 4 — Microservices & Communication Inter-services
 - Séparation du microservice autonome `JavaSpringUsers` (port `8081`).
-- Client HTTP déclaratif `RestClient` (`RestClientConfig` + `UserValidationService`).
+- Client HTTP déclaratif `RestClient` avec interface de service dédiée `UserValidationService` (Inversion de dépendance).
 - Identification du joueur via l'en-tête `X-UserId` et vérification distante de validité (`GET /users/{id}/valid`).
 - Contrôle multi-joueurs strict sur `POST /games/{id}/moves` (seul `currentPlayerId` est autorisé à jouer).
 
-### 5. Itération 5 — Sécurité Stateless, JWT, BCrypt & RBAC
+### 5. Itération 5 — Sécurité Stateless, JWT, BCrypt, RBAC & Qualité
 - **Service Utilisateurs (:8081)** :
   - Hash des mots de passe avec `BCryptPasswordEncoder`.
   - Émission de jetons cryptographiques signés HMAC-SHA256 (`POST /auth/login`).
+  - Validation des payloads à l'inscription et au login (`@Valid`, `@NotBlank`, `@Email`, `@Size`).
   - Autorisations fines par rôles (`ROLE_USER`, `ROLE_ADMIN`) avec `@PreAuthorize` et `@EnableMethodSecurity`.
+  - Protection anti-clickjacking sur la console H2 (`sameOrigin`).
 - **Square Games API (:8080)** :
   - Filtre `JwtAuthenticationFilter` (`OncePerRequestFilter`) et `SecurityConfig`.
-  - **Validation 100% locale** du jeton Bearer grâce à la clé secrète partagée (0 appel réseau vers `:8081`).
-  - Fallback rétrocompatible avec `X-UserId`.
+  - Validation 100% locale du jeton Bearer via secret partagé (0 appel réseau vers `:8081`).
+  - **Cloisonnement BOLA (Broken Object Level Authorization)** sur `GET /games/{id}` : consultation strictement réservée aux participants inscrits dans la partie.
+- **Gestionnaire Global d'Exceptions** :
+  - Centralisation des erreurs via `@RestControllerAdvice` (`GlobalExceptionHandler`) pour un formatage JSON uniforme des erreurs (400, 401, 403, 404, 409).
 
 ---
 
@@ -91,6 +98,7 @@ L'application intègre une interface web complète servie directement sur `http:
 - **Frontend** : HTML5, CSS3 Moderne (Glassmorphism & animations CSS), Vanilla JavaScript SPA
 - **Sécurité** : Spring Security 6.x, JJWT (`io.jsonwebtoken` 0.12.6), BCrypt
 - **Persistance** : Spring Data JPA, Hibernate, Spring JDBC, MySQL Connector / H2
+- **Validation** : Jakarta Bean Validation (`spring-boot-starter-validation`)
 - **Documentation API** : SpringDoc OpenAPI 2.8.5 (Swagger UI)
 - **Tests** : JUnit 5, Mockito, Spring Test (MockMvc)
 - **Outils** : Maven Wrapper (`./mvnw`), Docker (MySQL), Bruno
@@ -107,14 +115,12 @@ docker start docker_mysql
 
 ### 2. Démarrer le Service Utilisateurs (Port 8081)
 ```bash
-cd /home/user/Documents/Cours/JavaSpringUsers
+cd ../JavaSpringUsers
 ./mvnw spring-boot:run
 ```
 
 ### 3. Démarrer l'API Square Games & le Frontend (Port 8080)
 ```bash
-cd /home/user/Documents/Cours/JavaSpring
-
 # Optionnel : configurer les variables d'environnement (JWT_SECRET)
 cp .env.example .env
 
@@ -136,26 +142,11 @@ L'application web est accessible directement sur : **`http://localhost:8080/`**
 
 ```bash
 # Tests de l'API de jeux (23 tests unitaires et d'intégration)
-cd /home/user/Documents/Cours/JavaSpring && ./mvnw clean test
+./mvnw clean test
 
 # Tests du service utilisateurs (9 tests d'intégration)
-cd /home/user/Documents/Cours/JavaSpringUsers && ./mvnw clean test
+cd ../JavaSpringUsers && ./mvnw clean test
 ```
-
----
-
-## 🛡️ Durcissement & Refactorisation (Audit de Qualité & Sécurité)
-
-Suite à l'audit de code et d'architecture, les améliorations suivantes ont été intégrées :
-- **Cybersécurité (OWASP)** :
-  - **Protection BOLA (Broken Object Level Authorization)** sur `GET /games/{id}` : vérification stricte de l'appartenance de l'utilisateur à la partie (`game.getPlayerIds()`), renvoyant `403 Forbidden` pour les tiers.
-  - **Validation des payloads de jeu** : ajout des contraintes `@NotNull` sur [`MoveDto`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/dto/MoveDto.java) et vérification de non-nullité évitant tout `NullPointerException` (HTTP 500).
-- **Patterns de Conception** :
-  - **Pattern Stratégie (Open-Closed Principle)** : ajout de `canHandle(gameType)` sur [`GamePlugin`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/plugin/GamePlugin.java), fermant [`GameServiceImpl`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/service/GameServiceImpl.java) à toute modification lors de l'ajout futur de nouveaux plugins de jeu.
-  - **Inversion de Dépendances (DIP)** : découplage de [`UserValidationService`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/service/UserValidationService.java) en interface et classe concrète [`UserValidationServiceImpl`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/service/UserValidationServiceImpl.java).
-  - **Gestion Globale des Erreurs** : mise en place de [`GlobalExceptionHandler`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/controller/GlobalExceptionHandler.java) (`@RestControllerAdvice`) pour standardiser les réponses d'erreurs (400, 403, 404, validation).
-  - **Encapsulation JPA** : refactorisation de [`GameEntity`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/entity/GameEntity.java) et [`GameTokenEntity`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/entity/GameTokenEntity.java) avec attributs privés et accesseurs.
-  - **Concurrence & Aléatoire** : utilisation de `ThreadLocalRandom.current()` dans [`RandomHeartbeatSensor`](file:///home/user/Documents/Cours/JavaSpring/src/main/java/com/bsourichanh/javaspring/service/RandomHeartbeatSensor.java).
 
 ---
 
@@ -163,6 +154,4 @@ Suite à l'audit de code et d'architecture, les améliorations suivantes ont ét
 
 - **Application Web SPA** : `http://localhost:8080/`
 - **Swagger UI** : `http://localhost:8080/swagger-ui.html`
-- **Collections Bruno** : Situées dans le dossier [`bruno/`](file:///home/user/Documents/Cours/JavaSpring/bruno) (requêtes pas à pas des étapes 1 à 5).
-- **Rapport d'Audit Complet** : Fiche détaillée dans le coffre Obsidian [`Audit_Code_Et_Securite.md`](file:///home/user/Documents/Obsidian_Vault/01_Cours/Java%20Spring/Audit_Code_Et_Securite.md).
-
+- **Collections Bruno** : Situées dans le dossier [`bruno/`](bruno/) (requêtes pas à pas des étapes 1 à 5).
